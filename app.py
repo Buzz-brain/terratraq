@@ -23,6 +23,11 @@ from bson.objectid import ObjectId
 from bson.errors import InvalidId
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# Keep TensorFlow CPU/memory usage modest on small (free-tier) instances
+os.environ.setdefault('TF_NUM_INTRAOP_THREADS', '2')
+os.environ.setdefault('TF_NUM_INTEROP_THREADS', '1')
+
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from PIL import Image
@@ -428,6 +433,17 @@ def backup_current_model():
     shutil.copy2(CLASS_NAMES_PATH, os.path.join(BACKUP_FOLDER, f"class_names_{ts}.pkl"))
     prune_model_backups()
 
+def validate_image_file(file_path):
+    """Check a saved upload is a real, supported image. Returns (ok, error)."""
+    try:
+        with Image.open(file_path) as im:
+            im.verify()
+        return True, None
+    except Exception:
+        return False, ("The uploaded file is not a supported image. Please upload a "
+                       "JPG, PNG, or GIF saved in a standard format (iPhone HEIC/HEIF, "
+                       "AVIF, WebP, or files with a renamed extension won't work).")
+
 def predict_image(image_path):
     """Make prediction on a single image, returning class, confidence, and all probabilities"""
     if model is None or class_names is None:
@@ -561,6 +577,12 @@ def predict():
         saved_filename = f"{timestamp}_{filename}"
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], saved_filename)
         file.save(file_path)
+
+        # Make sure the upload is actually a supported image before running the model
+        ok, img_error = validate_image_file(file_path)
+        if not ok:
+            os.remove(file_path)
+            return render_template('error.html', error=img_error)
 
         # Make prediction
         predicted_class, confidence, probabilities = predict_image(file_path)
