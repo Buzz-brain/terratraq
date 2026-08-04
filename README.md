@@ -12,7 +12,7 @@
   <a href="https://terratraq.onrender.com"><img src="https://img.shields.io/badge/Live%20Demo-terratraq.onrender.com-2563EB?style=for-the-badge&logo=render" alt="Live Demo"></a>
   <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.11">
   <img src="https://img.shields.io/badge/Flask-2.3-000000?style=for-the-badge&logo=flask" alt="Flask">
-  <img src="https://img.shields.io/badge/TensorFlow-2.21-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white" alt="TensorFlow">
+  <img src="https://img.shields.io/badge/ONNX%20Runtime-1.28-005CED?style=for-the-badge&logo=onnx&logoColor=white" alt="ONNX Runtime">
   <img src="https://img.shields.io/badge/MongoDB%20Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB Atlas">
 </p>
 
@@ -47,8 +47,9 @@
 
 ## Overview
 
-Terratraq combines a TensorFlow/Keras convolutional neural network with a polished Flask web
-app to give anyone a fast, secure way to inspect road surface condition from a single photo.
+Terratraq combines a deep learning CNN (trained with TensorFlow/Keras, served live via
+ONNX Runtime) with a polished Flask web app to give anyone a fast, secure way to inspect
+road surface condition from a single photo.
 
 Users upload an image, and the model returns:
 
@@ -113,7 +114,12 @@ road_model_training.ipynb
    - `model_final.h5` — Keras CNN weights
    - `class_names.pkl` — class label order
    - `confusion_matrix.png`, `training_history.png` — analytics for the admin panel
-4. **Upload to the site** &mdash; download those files from Drive, then go to **Model → Update CNN Model** on the site and upload them. The model goes live immediately (no restart needed); the old version is kept as a backup.
+4. **Convert to ONNX** &mdash; the live site runs the model with ONNX Runtime (light enough for the free hosting tier), so convert the `.h5` first:
+   ```bash
+   python tools/convert_to_onnx.py model_final.h5 model_final.onnx
+   ```
+   (Requires a local Python with TensorFlow/Keras installed; see `tools/convert_to_onnx.py`.)
+5. **Upload to the site** &mdash; download `model_final.onnx` and `class_names.pkl` from Drive, then go to **Model → Update CNN Model** on the site and upload them. The model goes live immediately (no restart needed); the old version is kept as a backup.
 
 ---
 
@@ -161,7 +167,7 @@ These are the five classes the model recognizes, sampled straight from the train
 | Layer | Technology |
 |---|---|
 | **Backend** | Python, Flask 2.3, Gunicorn |
-| **Machine Learning** | TensorFlow 2.21, Keras 3.13, NumPy |
+| **Machine Learning** | ONNX Runtime 1.28, NumPy (model trained with TensorFlow/Keras, served as ONNX) |
 | **Database** | MongoDB Atlas (via PyMongo 4.17) |
 | **Frontend** | HTML, CSS, JavaScript, Bootstrap 5, Font Awesome |
 | **Image Processing** | Pillow |
@@ -178,8 +184,10 @@ roadprediction/
 ├── .python-version               # Pins Python 3.11.9 for Render
 ├── .env.example                  # Environment variable template (see below)
 ├── road_model_training.ipynb   # Google Colab training notebook (downloadable in admin)
+├── tools/
+│   └── convert_to_onnx.py      # Converts a trained .h5 model to .onnx for upload
 ├── model/
-│   ├── model_final.h5            # Trained CNN weights
+│   ├── model_final.onnx        # Trained CNN (ONNX Runtime format, used live)
 │   ├── class_names.pkl           # Class label order
 │   ├── confusion_matrix.png      # Model analytics
 │   ├── training_history.png      # Training curves
@@ -206,7 +214,7 @@ roadprediction/
 
 ### Prerequisites
 
-- Python **3.11** (pinned via `.python-version`; TensorFlow has no 3.14 wheels)
+- Python **3.11** (pinned via `.python-version`)
 - A running MongoDB instance **or** a MongoDB Atlas connection string
 
 ### 1. Clone & set up
@@ -329,15 +337,16 @@ The admin panel is available at `/admin` after logging in as an admin:
 |---|---|
 | Runtime | Python 3 |
 | Build command | `pip install -r requirements.txt` |
-| Start command | `gunicorn app:app` |
+| Start command | `gunicorn app:app` (Procfile adds `--timeout 120 --workers 1`) |
 | Instance type | Free |
 
 4. Add the environment variables from [Environment Variables](#environment-variables) above
    (same values as your local `.env`).
-5. Deploy. The first build takes 10&ndash;20 minutes because of the TensorFlow dependency.
+5. Deploy. The build takes a few minutes (the app no longer installs TensorFlow &mdash;
+   it runs the model with the lightweight ONNX Runtime).
 
-> The `.python-version` file in the repo pins Python 3.11.9 &mdash; required because
-> TensorFlow does not yet publish wheels for Python 3.14.
+> The `Procfile` in the repo sets the gunicorn timeout to 120s (TensorFlow-era default of 30s
+> was too short for inference) and pins a single worker to stay inside the free instance's RAM.
 
 ---
 

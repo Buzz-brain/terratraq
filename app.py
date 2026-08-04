@@ -24,13 +24,7 @@ from bson.objectid import ObjectId
 from bson.errors import InvalidId
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-
-# Keep TensorFlow CPU/memory usage modest on small (free-tier) instances
-os.environ.setdefault('TF_NUM_INTRAOP_THREADS', '2')
-os.environ.setdefault('TF_NUM_INTEROP_THREADS', '1')
-os.environ.setdefault('OMP_NUM_THREADS', '2')
-
-from tensorflow.keras.models import load_model
+import onnxruntime as ort
 from PIL import Image
 
 # ============================================================================
@@ -53,7 +47,7 @@ app.config['MAX_CONTENT_LENGTH'] = 256 * 1024 * 1024  # 256MB max (allows model 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 # Model configuration
-MODEL_PATH = os.path.join(app.root_path, 'model', 'model_final.h5')
+MODEL_PATH = os.path.join(app.root_path, 'model', 'model_final.onnx')
 CLASS_NAMES_PATH = os.path.join(app.root_path, 'model', 'class_names.pkl')
 IMG_SIZE = (224, 224)
 
@@ -296,21 +290,33 @@ except Exception as e:
 
 # Global variables for model
 model = None
+model_input_name = None
 class_names = None
 
+def load_onnx_session(path):
+    """Load an ONNX model and return (session, num_classes)."""
+    sess = ort.InferenceSession(path, providers=['CPUExecutionProvider'])
+    shape = sess.get_outputs()[0].shape
+    dim = shape[-1] if shape else None
+    num_classes = int(dim) if isinstance(dim, int) else 0
+    return sess, num_classes
+
 def load_model_and_classes():
-    global model, class_names
+    global model, model_input_name, class_names
 
     if os.path.exists(MODEL_PATH):
         try:
-            model = load_model(MODEL_PATH)
-            print(f"Model loaded from: {MODEL_PATH}")
+            model, num_classes = load_onnx_session(MODEL_PATH)
+            model_input_name = model.get_inputs()[0].name
+            print(f"Model loaded from: {MODEL_PATH} ({num_classes} classes)")
         except Exception as e:
             print(f"Error loading model: {e}")
             model = None
+            model_input_name = None
     else:
         print(f"Model not found at: {MODEL_PATH}")
         model = None
+        model_input_name = None
 
     if os.path.exists(CLASS_NAMES_PATH):
         try:
@@ -385,15 +391,15 @@ def get_dir_size(path):
     )
 
 def get_model_backups(limit=5):
-    """Return the most recent model backups (as .h5 + matching class_names.pkl pairs)."""
+    """Return the most recent model backups (as .onnx + matching class_names.pkl pairs)."""
     if not os.path.isdir(BACKUP_FOLDER):
         return []
     files = [f for f in os.listdir(BACKUP_FOLDER)
-             if f.startswith('model_final_') and f.endswith('.h5')]
+             if f.startswith('model_final_') and f.endswith('.onnx')]
     files.sort(key=lambda f: os.path.getmtime(os.path.join(BACKUP_FOLDER, f)), reverse=True)
     backups = []
     for f in files[:limit]:
-        ts = f[len('model_final_'):-len('.h5')]
+        ts = f[len('model_final_'):-len('.onnx')]
         partner = f"class_names_{ts}.pkl"
         full = os.path.join(BACKUP_FOLDER, f)
         if os.path.exists(os.path.join(BACKUP_FOLDER, partner)):
@@ -411,11 +417,11 @@ def prune_model_backups(max_count=BACKUP_KEEP):
         return
     files = sorted(
         (f for f in os.listdir(BACKUP_FOLDER)
-         if f.startswith('model_final_') and f.endswith('.h5')),
+         if f.startswith('model_final_') and f.endswith('.onnx')),
         key=lambda f: os.path.getmtime(os.path.join(BACKUP_FOLDER, f))
     )
     for f in files[:-max_count]:
-        ts = f[len('model_final_'):-len('.h5')]
+        ts = f[len('model_final_'):-len('.onnx')]
         for name in (f, f"class_names_{ts}.pkl"):
             p = os.path.join(BACKUP_FOLDER, name)
             if os.path.exists(p):
@@ -430,7 +436,7 @@ def backup_current_model():
         return
     os.makedirs(BACKUP_FOLDER, exist_ok=True)
     ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    shutil.copy2(MODEL_PATH, os.path.join(BACKUP_FOLDER, f"model_final_{ts}.h5"))
+    shutil.copy2(MODEL_PATH, os.path.join(BACKUP_FOLDER, f"model_final_{ts}.onnx"))
     shutil.copy2(CLASS_NAMES_PATH, os.path.join(BACKUP_FOLDER, f"class_names_{ts}.pkl"))
     prune_model_backups()
 
@@ -468,7 +474,7 @@ def predict_image(image_path):
             img_array = np.expand_dims(img_array, axis=0)
 
         # Predict
-        predictions = model.predict(img_array, verbose=0)[0]
+        predictions = model.run(None, {model_input_name: img_array})[0][0]
         predicted_idx = int(np.argmax(predictions))
         confidence = float(predictions[predicted_idx] * 100)
         predicted_class = class_names[predicted_idx]
@@ -860,7 +866,7 @@ def admin_dashboard():
         'model_size': os.path.getsize(MODEL_PATH) if os.path.exists(MODEL_PATH) else 0,
         'classes': class_names,
         'python_version': sys.version.split()[0],
-        'tensorflow_version': __import__('tensorflow').__version__,
+        'runtime_version': ort.__version__,
         'now': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
     return render_template('admin/dashboard.html', s=stats)
@@ -920,7 +926,7 @@ def admin_model_restore(timestamp):
     if not timestamp or not all(c.isalnum() or c in ('_', '-') for c in timestamp):
         flash('Invalid backup.', 'warning')
         return redirect(url_for('admin_retrain'))
-    h5_path = os.path.join(BACKUP_FOLDER, f"model_final_{timestamp}.h5")
+    h5_path = os.path.join(BACKUP_FOLDER, f"model_final_{timestamp}.onnx")
     pkl_path = os.path.join(BACKUP_FOLDER, f"class_names_{timestamp}.pkl")
     if not os.path.exists(h5_path) or not os.path.exists(pkl_path):
         flash('Backup not found.', 'warning')
@@ -928,18 +934,19 @@ def admin_model_restore(timestamp):
     try:
         with open(pkl_path, 'rb') as f:
             new_classes = pickle.load(f)
-        new_model = load_model(h5_path)
+        new_model, num_classes = load_onnx_session(h5_path)
         if not isinstance(new_classes, (list, tuple)):
             raise ValueError("class_names.pkl must contain a list of class labels.")
-        if new_model.output_shape[-1] != len(new_classes):
+        if num_classes != len(new_classes):
             raise ValueError(
-                f"Model outputs {new_model.output_shape[-1]} classes "
+                f"Model outputs {num_classes} classes "
                 f"but class_names.pkl has {len(new_classes)}."
             )
-        global model, class_names
+        global model, model_input_name, class_names
         shutil.copyfile(h5_path, MODEL_PATH)
         shutil.copyfile(pkl_path, CLASS_NAMES_PATH)
         model = new_model
+        model_input_name = model.get_inputs()[0].name
         class_names = new_classes
         log_event(f"Model restored from backup {timestamp} by admin")
         flash(f"Model restored from backup ({timestamp}).", 'success')
@@ -1007,33 +1014,34 @@ def admin_retrain():
         classes_file = request.files.get('classes_file')
 
         if not model_file or model_file.filename == '' or not classes_file or classes_file.filename == '':
-            error = "Please provide both the model (.h5) and class names (.pkl) files."
+            error = "Please provide both the model (.onnx) and class names (.pkl) files."
         else:
-            if not model_file.filename.endswith('.h5'):
-                error = "Model file must be a .h5 file."
-            elif not classes_file.filename.endswith('.pkl'):
+            if not model_file.filename.lower().endswith('.onnx'):
+                error = "Model file must be an .onnx file."
+            elif not classes_file.filename.lower().endswith('.pkl'):
                 error = "Class names file must be a .pkl file."
             else:
-                tmp_model = os.path.join(app.root_path, 'model', '_new_model.h5')
+                tmp_model = os.path.join(app.root_path, 'model', '_new_model.onnx')
                 tmp_classes = os.path.join(app.root_path, 'model', '_new_classes.pkl')
                 model_file.save(tmp_model)
                 classes_file.save(tmp_classes)
                 try:
                     with open(tmp_classes, 'rb') as f:
                         new_classes = pickle.load(f)
-                    new_model = load_model(tmp_model)
+                    new_model, num_classes = load_onnx_session(tmp_model)
                     if not isinstance(new_classes, (list, tuple)):
                         raise ValueError("class_names.pkl must contain a list of class labels.")
-                    if new_model.output_shape[-1] != len(new_classes):
+                    if num_classes != len(new_classes):
                         raise ValueError(
-                            f"Model outputs {new_model.output_shape[-1]} classes "
+                            f"Model outputs {num_classes} classes "
                             f"but class_names.pkl has {len(new_classes)}."
                         )
-                    global model, class_names
+                    global model, model_input_name, class_names
                     backup_current_model()
                     os.replace(tmp_model, MODEL_PATH)
                     os.replace(tmp_classes, CLASS_NAMES_PATH)
                     model = new_model
+                    model_input_name = model.get_inputs()[0].name
                     class_names = new_classes
                     log_event(f"Model updated by admin. Classes: {class_names}")
                     message = "Model updated and reloaded successfully."
@@ -1074,7 +1082,7 @@ def admin_settings():
         'classes_file': os.path.basename(CLASS_NAMES_PATH),
         'model_classes': class_names,
         'python_version': sys.version.split()[0],
-        'tensorflow_version': __import__('tensorflow').__version__,
+        'runtime_version': ort.__version__,
         'admin_username': ADMIN_USERNAME,
         'has_confusion': os.path.exists(os.path.join(app.root_path, 'model', 'confusion_matrix.png')),
         'has_history': os.path.exists(history_path),
@@ -1142,7 +1150,7 @@ if __name__ == '__main__':
     # Check if model is loaded
     if model is None:
         print("\nWARNING: Model not loaded. The app will not work.")
-        print(f"   Please ensure model_final.h5 exists in the model folder.")
+        print(f"   Please ensure model_final.onnx exists in the model folder.")
 
     if class_names is None:
         print("WARNING: Class names not loaded.")

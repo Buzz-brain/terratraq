@@ -43,9 +43,11 @@
                 <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold mb-2" style="width: 44px; height: 44px;">2</div>
                 <h6 class="fw-bold mb-1">Export the artifacts</h6>
                 <p class="text-muted small mb-0">
-                    Save <code>model_final.h5</code> and <code>class_names.pkl</code>, plus
+                    Save <code>model_final.onnx</code> and <code>class_names.pkl</code>, plus
                     <code>confusion_matrix.png</code> and <code>training_history.png</code>
-                    for the System Settings page.
+                    for the System Settings page. Convert the notebook's
+                    <code>.h5</code> to <code>.onnx</code> with the included
+                    <code>tools/convert_to_onnx.py</code> script.
                 </p>
             </div>
             <div class="col-md-6 col-lg-3">
@@ -59,7 +61,7 @@
                 <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold mb-2" style="width: 44px; height: 44px;">4</div>
                 <h6 class="fw-bold mb-1">Upload below</h6>
                 <p class="text-muted small mb-0">
-                    Upload <code>model_final.h5</code> and <code>class_names.pkl</code> in the
+                    Upload <code>model_final.onnx</code> and <code>class_names.pkl</code> in the
                     "Update CNN Model" panel. The new model activates immediately.
                 </p>
             </div>
@@ -76,9 +78,9 @@
               onsubmit="return confirm('Replace the current model? A backup of the current model will be saved first.')">
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Model file (.h5)</label>
-                    <input type="file" name="model_file" class="form-control" accept=".h5" required>
-                    <div class="form-text">Keras HDF5 model file (e.g. model_final.h5)</div>
+                    <label class="form-label fw-semibold">Model file (.onnx)</label>
+                    <input type="file" name="model_file" class="form-control" accept=".onnx" required>
+                    <div class="form-text">ONNX model file (e.g. model_final.onnx)</div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Class names file (.pkl)</label>
