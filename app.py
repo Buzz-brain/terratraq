@@ -5,6 +5,7 @@
 
 import os
 import sys
+import gc
 import json
 import pickle
 import shutil
@@ -27,9 +28,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # Keep TensorFlow CPU/memory usage modest on small (free-tier) instances
 os.environ.setdefault('TF_NUM_INTRAOP_THREADS', '2')
 os.environ.setdefault('TF_NUM_INTEROP_THREADS', '1')
+os.environ.setdefault('OMP_NUM_THREADS', '2')
 
 from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from PIL import Image
 
 # ============================================================================
@@ -445,15 +446,26 @@ def validate_image_file(file_path):
                        "AVIF, WebP, or files with a renamed extension won't work).")
 
 def predict_image(image_path):
-    """Make prediction on a single image, returning class, confidence, and all probabilities"""
+    """Make prediction on a single image, returning class, confidence, and all probabilities.
+
+    Loads the image with minimal memory (decodes at reduced scale instead of loading
+    the full file into a BytesIO) so predictions fit on small free-tier instances.
+    """
     if model is None or class_names is None:
         return None, None, None
 
+    img_array = None
     try:
         # Load and preprocess image
-        img = load_img(image_path, target_size=IMG_SIZE)
-        img_array = img_to_array(img) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
+        with Image.open(image_path) as im:
+            try:
+                im.draft('RGB', (IMG_SIZE[0] * 2, IMG_SIZE[1] * 2))
+            except Exception:
+                pass
+            im = im.convert('RGB')
+            img_array = np.asarray(im.resize(IMG_SIZE, Image.Resampling.LANCZOS),
+                                   dtype=np.float32) / 255.0
+            img_array = np.expand_dims(img_array, axis=0)
 
         # Predict
         predictions = model.predict(img_array, verbose=0)[0]
@@ -466,6 +478,9 @@ def predict_image(image_path):
     except Exception as e:
         print(f"Prediction error: {e}")
         return None, None, None
+    finally:
+        del img_array
+        gc.collect()
 
 # ============================================================================
 # APPLICATION ROUTES (login required)
@@ -577,6 +592,12 @@ def predict():
         saved_filename = f"{timestamp}_{filename}"
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], saved_filename)
         file.save(file_path)
+
+        # Cap prediction image size (keeps memory in check on small instances)
+        if os.path.getsize(file_path) > 16 * 1024 * 1024:
+            os.remove(file_path)
+            return render_template('error.html',
+                                   error="Image is too large (max 16 MB). Please upload a smaller image.")
 
         # Make sure the upload is actually a supported image before running the model
         ok, img_error = validate_image_file(file_path)
