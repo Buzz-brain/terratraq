@@ -107,7 +107,7 @@ def to_oid(value):
         return None
 
 class User:
-    """Wrapper around a MongoDB 'users' document (field access kept SQLAlchemy-style)."""
+    """Wrapper around a MongoDB 'users' document (attribute-style field access)."""
 
     def __init__(self, doc):
         self.doc = doc
@@ -187,7 +187,7 @@ class User:
         users_col.delete_one({'_id': self.doc['_id']})
 
 class Prediction:
-    """Wrapper around a MongoDB 'predictions' document (field access kept SQLAlchemy-style)."""
+    """Wrapper around a MongoDB 'predictions' document (attribute-style field access)."""
 
     def __init__(self, doc):
         self.doc = doc
