@@ -480,6 +480,16 @@ def index():
         return render_template('landing.html')
     return redirect(url_for('dashboard'))
 
+@app.route('/health')
+def health():
+    """Lightweight health check for uptime monitors / keep-alive cron jobs."""
+    db_ok = True
+    try:
+        mongo.admin.command('ping')
+    except Exception:
+        db_ok = False
+    return jsonify({'status': 'ok' if db_ok else 'degraded', 'database': db_ok}), 200 if db_ok else 503
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
