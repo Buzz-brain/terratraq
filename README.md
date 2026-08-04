@@ -29,6 +29,7 @@
 - [Overview](#overview)
 - [Key Features](#key-features)
 - [Model & Analytics](#model--analytics)
+- [Training the Model](#training-the-model)
 - [Road Condition Gallery](#road-condition-gallery)
 - [Screenshots](#screenshots)
 - [Tech Stack](#tech-stack)
@@ -96,6 +97,26 @@ The production model is a TensorFlow/Keras CNN trained on an original dataset of
 
 ---
 
+## Training the Model
+
+Training a CNN needs a GPU and thousands of images, so it runs in **Google Colab**, not on the server. The entire pipeline &mdash; dataset preparation, train/validation/test split, and MobileNetV2 transfer learning &mdash; lives in a single notebook at the repo root:
+
+```text
+Sound_Classifier.ipynb
+```
+
+**How to retrain and ship a new model**
+
+1. **Get the notebook** &mdash; download it from the live site: login as admin → **System Settings** → *Download training notebook* (or **Model → Update CNN Model** → *Download training notebook* in the "How Training Works" card).
+2. **Open in Colab** &mdash; [colab.research.google.com](https://colab.research.google.com) → *File → Upload notebook* → select `Sound_Classifier.ipynb`.
+3. **Run it** &mdash; connect to Google Drive when prompted, then run all cells. The notebook downloads the road-condition dataset, splits it, trains, and saves these artifacts to your Drive:
+   - `model_final.h5` — Keras CNN weights
+   - `class_names.pkl` — class label order
+   - `confusion_matrix.png`, `training_history.png` — analytics for the admin panel
+4. **Upload to the site** &mdash; download those files from Drive, then go to **Model → Update CNN Model** on the site and upload them. The model goes live immediately (no restart needed); the old version is kept as a backup.
+
+---
+
 ## Road Condition Gallery
 
 These are the five classes the model recognizes, sampled straight from the training data:
@@ -156,6 +177,7 @@ roadprediction/
 ├── requirements.txt              # Python dependencies
 ├── .python-version               # Pins Python 3.11.9 for Render
 ├── .env.example                  # Environment variable template (see below)
+├── Sound_Classifier.ipynb        # Google Colab training notebook (downloadable in admin)
 ├── model/
 │   ├── model_final.h5            # Trained CNN weights
 │   ├── class_names.pkl           # Class label order

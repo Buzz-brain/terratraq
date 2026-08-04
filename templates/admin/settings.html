@@ -40,6 +40,11 @@
                     <a href="{{ url_for('admin_model_download', kind='classes') }}" class="btn btn-outline-primary">
                         <i class="fas fa-download me-2"></i>Download {{ info.classes_file }}
                     </a>
+                    {% if info.has_notebook %}
+                    <a href="{{ url_for('admin_model_download', kind='notebook') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-file-code me-2"></i>Download training notebook (.ipynb)
+                    </a>
+                    {% endif %}
                 </div>
                 <p class="text-muted small mb-0">
                     These are the exact files the application runs on. Re-upload them anytime via

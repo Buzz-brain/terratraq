@@ -51,6 +51,9 @@ MODEL_PATH = os.path.join(app.root_path, 'model', 'model_final.h5')
 CLASS_NAMES_PATH = os.path.join(app.root_path, 'model', 'class_names.pkl')
 IMG_SIZE = (224, 224)
 
+# Model training notebook (downloadable from the admin panel)
+TRAINING_NOTEBOOK = os.path.join(app.root_path, 'Sound_Classifier.ipynb')
+
 # Admin configuration (from .env, fall back to defaults)
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
@@ -1004,7 +1007,8 @@ def admin_retrain():
     return render_template('admin/retrain.html',
                          message=message,
                          error=error,
-                         backups=get_model_backups())
+                         backups=get_model_backups(),
+                         notebook_available=os.path.exists(TRAINING_NOTEBOOK))
 
 @app.route('/admin/settings')
 @admin_required
@@ -1032,6 +1036,7 @@ def admin_settings():
         'has_confusion': os.path.exists(os.path.join(app.root_path, 'model', 'confusion_matrix.png')),
         'has_history': os.path.exists(history_path),
         'has_history_img': os.path.exists(os.path.join(app.root_path, 'model', 'training_history.png')),
+        'has_notebook': os.path.exists(TRAINING_NOTEBOOK),
     }
     return render_template('admin/settings.html', info=info, history=history)
 
@@ -1044,6 +1049,7 @@ def admin_model_download(kind):
         'classes': CLASS_NAMES_PATH,
         'confusion': os.path.join(app.root_path, 'model', 'confusion_matrix.png'),
         'history': os.path.join(app.root_path, 'model', 'training_history.png'),
+        'notebook': TRAINING_NOTEBOOK,
     }
     if kind not in mapping:
         flash('Invalid file.', 'warning')
