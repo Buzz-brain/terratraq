@@ -52,7 +52,7 @@ CLASS_NAMES_PATH = os.path.join(app.root_path, 'model', 'class_names.pkl')
 IMG_SIZE = (224, 224)
 
 # Model training notebook (downloadable from the admin panel)
-TRAINING_NOTEBOOK = os.path.join(app.root_path, 'Sound_Classifier.ipynb')
+TRAINING_NOTEBOOK = os.path.join(app.root_path, 'road_model_training.ipynb')
 
 # Admin configuration (from .env, fall back to defaults)
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')

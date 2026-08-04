@@ -363,6 +363,19 @@ body {
     border-radius: 50%;
 }
 
+/* Password visibility toggle */
+.input-group .password-toggle {
+    color: #6b7280;
+    border-color: #ced4da;
+    background: #fff;
+}
+.input-group .password-toggle:hover,
+.input-group .password-toggle:focus {
+    color: var(--accent);
+    background: #fff;
+    box-shadow: none;
+}
+
 /* ============================================================================
    COMPONENTS
    ============================================================================ */

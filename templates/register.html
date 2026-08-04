@@ -23,12 +23,24 @@
             </div>
             <div class="mb-3">
                 <label for="password" class="form-label fw-semibold">Password</label>
-                <input type="password" class="form-control" id="password" name="password"
-                       placeholder="At least 6 characters" required>
+                <div class="input-group">
+                    <input type="password" class="form-control" id="password" name="password"
+                           placeholder="At least 6 characters" required>
+                    <button type="button" class="btn btn-outline-secondary password-toggle" data-target="#password"
+                            tabindex="-1" aria-label="Show password">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
             </div>
             <div class="mb-4">
                 <label for="confirm" class="form-label fw-semibold">Confirm Password</label>
-                <input type="password" class="form-control" id="confirm" name="confirm" required>
+                <div class="input-group">
+                    <input type="password" class="form-control" id="confirm" name="confirm" required>
+                    <button type="button" class="btn btn-outline-secondary password-toggle" data-target="#confirm"
+                            tabindex="-1" aria-label="Show password">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
             </div>
             <div class="d-grid">
                 <button type="submit" class="btn btn-primary btn-lg" data-loading="Creating account...">

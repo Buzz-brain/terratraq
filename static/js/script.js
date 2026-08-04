@@ -145,6 +145,25 @@ function confirmDelete(message = 'Are you sure you want to delete this?') {
 }
 
 // ============================================================================
+// Password visibility toggle (login / register)
+// ============================================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.password-toggle').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const input = document.querySelector(this.dataset.target);
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = this.querySelector('i');
+            if (icon) icon.className = isPassword ? 'fas fa-eye-slash' : 'fas fa-eye';
+            this.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+            input.focus();
+        });
+    });
+});
+
+// ============================================================================
 // Auto-submit form with loading state
 // ============================================================================
 
