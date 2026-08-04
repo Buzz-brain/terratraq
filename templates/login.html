@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Terratraq{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <div class="auth-card-body">
+        <div class="text-center mb-4">
+            <div class="auth-card-icon"><i class="fas fa-sign-in-alt"></i></div>
+            <h3 class="fw-bold mb-1">Welcome Back</h3>
+            <p class="text-muted mb-0">Sign in to access Terratraq</p>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('login') }}" data-auth-loader>
+            <div class="mb-3">
+                <label for="username" class="form-label fw-semibold">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required autofocus>
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label fw-semibold">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg" data-loading="Logging in...">
+                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                </button>
+            </div>
+        </form>
+
+        <p class="text-center text-muted mt-4 mb-0">
+            Don't have an account?
+            <a href="{{ url_for('register') }}">Register</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "admin/base.html" %}
+
+{% block admin_title %}Train CNN Model{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold"><i class="fas fa-brain me-2 text-primary"></i>Train CNN Model</h3>
+</div>
+
+{% if message %}
+<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>{{ message }}</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>{{ error }}</div>
+{% endif %}
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white py-3">
+        <h5 class="fw-bold mb-0"><i class="fas fa-graduation-cap me-2 text-primary"></i>How Training Works</h5>
+    </div>
+    <div class="card-body">
+        <p class="text-muted small">
+            Training a CNN requires a GPU and thousands of images, so it runs in
+            <strong>Google Colab</strong> — not on this server. Once trained, the finished
+            model is uploaded here and goes live immediately (no restart needed).
+        </p>
+        <div class="row g-4 text-center">
+            <div class="col-md-6 col-lg-3">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold mb-2" style="width: 44px; height: 44px;">1</div>
+                <h6 class="fw-bold mb-1">Train in Colab</h6>
+                <p class="text-muted small mb-0">
+                    MobileNetV2 transfer learning on your labeled dataset
+                    (e.g. <code>good/, pothole/, crack/, ...</code>). Upload dataset files for
+                    Colab via the <a href="{{ url_for('admin_datasets') }}">Datasets</a> page.
+                </p>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold mb-2" style="width: 44px; height: 44px;">2</div>
+                <h6 class="fw-bold mb-1">Export the artifacts</h6>
+                <p class="text-muted small mb-0">
+                    Save <code>model_final.h5</code> and <code>class_names.pkl</code>, plus
+                    <code>confusion_matrix.png</code> and <code>training_history.png</code>
+                    for the System Settings page.
+                </p>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold mb-2" style="width: 44px; height: 44px;">3</div>
+                <h6 class="fw-bold mb-1">Download from Colab</h6>
+                <p class="text-muted small mb-0">
+                    Download the exported files to your machine.
+                </p>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold mb-2" style="width: 44px; height: 44px;">4</div>
+                <h6 class="fw-bold mb-1">Upload below</h6>
+                <p class="text-muted small mb-0">
+                    Upload <code>model_final.h5</code> and <code>class_names.pkl</code> in the
+                    "Update CNN Model" panel. The new model activates immediately.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="fw-bold mb-0"><i class="fas fa-upload me-2 text-primary"></i>Update CNN Model</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('admin_retrain') }}" enctype="multipart/form-data"
+              onsubmit="return confirm('Replace the current model? A backup of the current model will be saved first.')">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Model file (.h5)</label>
+                    <input type="file" name="model_file" class="form-control" accept=".h5" required>
+                    <div class="form-text">Keras HDF5 model file (e.g. model_final.h5)</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Class names file (.pkl)</label>
+                    <input type="file" name="classes_file" class="form-control" accept=".pkl" required>
+                    <div class="form-text">Pickled list of class labels (e.g. class_names.pkl)</div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">
+                <i class="fas fa-sync-alt me-2"></i>Validate & Update Model
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if backups %}
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white py-3">
+        <h5 class="fw-bold mb-0"><i class="fas fa-history me-2 text-primary"></i>Backups & Restore</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Backup</th>
+                        <th>Size</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in backups %}
+                    <tr>
+                        <td>
+                            <i class="fas fa-clock me-2 text-muted"></i>{{ b.date }}
+                            <span class="text-muted small">({{ b.timestamp }})</span>
+                        </td>
+                        <td>{{ b.model_size|filesizeformat }}</td>
+                        <td class="text-end">
+                            <form method="POST" action="{{ url_for('admin_model_restore', timestamp=b.timestamp) }}"
+                                  class="d-inline"
+                                  onsubmit="return confirm('Restore the model from this backup? The current live model will be replaced.')">
+                                <button type="submit" class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-undo me-1"></i>Restore
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white text-muted small">
+        A snapshot of the previous model is saved automatically before every update. The most recent {{ backups|length }} backup(s) are kept.
+    </div>
+</div>
+{% endif %}
+{% endblock %}

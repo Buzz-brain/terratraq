@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Terratraq{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <div class="auth-card-body">
+        <div class="text-center mb-4">
+            <div class="auth-card-icon"><i class="fas fa-user-plus"></i></div>
+            <h3 class="fw-bold mb-1">Create Account</h3>
+            <p class="text-muted mb-0">Join Terratraq</p>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('register') }}" data-auth-loader>
+            <div class="mb-3">
+                <label for="username" class="form-label fw-semibold">Username</label>
+                <input type="text" class="form-control" id="username" name="username"
+                       placeholder="At least 3 characters" required autofocus>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label fw-semibold">Password</label>
+                <input type="password" class="form-control" id="password" name="password"
+                       placeholder="At least 6 characters" required>
+            </div>
+            <div class="mb-4">
+                <label for="confirm" class="form-label fw-semibold">Confirm Password</label>
+                <input type="password" class="form-control" id="confirm" name="confirm" required>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg" data-loading="Creating account...">
+                    <i class="fas fa-user-plus me-2"></i>Register
+                </button>
+            </div>
+        </form>
+
+        <p class="text-center text-muted mt-4 mb-0">
+            Already have an account?
+            <a href="{{ url_for('login') }}">Login</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

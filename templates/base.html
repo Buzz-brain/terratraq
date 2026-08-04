@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Terratraq{% endblock %}</title>
+
+    {% include "_loader_head.html" %}
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    {% include "_loader.html" %}
+
+    {% if current_user %}
+    <!-- ============ LOGGED-IN DASHBOARD LAYOUT ============ -->
+    <div class="app-shell" id="appShell">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <a href="{{ url_for('index') }}">
+                    <img class="brand-logo" src="{{ url_for('static', filename='images/logo.png') }}" alt="Terratraq logo">
+                    <span>Terratraq</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="sidebar-section-label">Main</div>
+
+                <a class="sidebar-link {{ 'active' if active_page == 'dashboard' }}"
+                   href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-home"></i><span>Dashboard</span>
+                </a>
+                <a class="sidebar-link {{ 'active' if active_page == 'upload' }}"
+                   href="{{ url_for('upload') }}">
+                    <i class="fas fa-cloud-upload-alt"></i><span>Upload Road Image</span>
+                </a>
+                <a class="sidebar-link {{ 'active' if active_page in ('result_view', 'result_latest') }}"
+                   href="{{ url_for('result_latest') }}">
+                    <i class="fas fa-chart-pie"></i><span>Prediction Result</span>
+                </a>
+                <a class="sidebar-link {{ 'active' if active_page == 'history' }}"
+                   href="{{ url_for('history') }}">
+                    <i class="fas fa-history"></i><span>Prediction History</span>
+                </a>
+
+                {% if current_user.role == 'admin' %}
+                <div class="sidebar-section-label">Administration</div>
+
+                <a class="sidebar-link {{ 'active' if active_page == 'admin_users' }}"
+                   href="{{ url_for('admin_users') }}">
+                    <i class="fas fa-users-cog"></i><span>Manage Users</span>
+                </a>
+                <a class="sidebar-link {{ 'active' if active_page == 'admin_datasets' }}"
+                   href="{{ url_for('admin_datasets') }}">
+                    <i class="fas fa-folder-open"></i><span>Datasets</span>
+                </a>
+                <a class="sidebar-link {{ 'active' if active_page in ('admin_retrain', 'admin_model') }}"
+                   href="{{ url_for('admin_retrain') }}">
+                    <i class="fas fa-brain"></i><span>Train CNN Model</span>
+                </a>
+                <a class="sidebar-link {{ 'active' if active_page == 'admin_settings' }}"
+                   href="{{ url_for('admin_settings') }}">
+                    <i class="fas fa-cogs"></i><span>System Settings</span>
+                </a>
+                {% endif %}
+
+                <a class="sidebar-link {{ 'active' if active_page == 'about' }}"
+                   href="{{ url_for('about') }}">
+                    <i class="fas fa-info-circle"></i><span>About</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-chip">
+                    <div class="user-avatar">{{ current_user.username[0]|upper }}</div>
+                    <div class="user-meta">
+                        <div class="user-name">{{ current_user.username }}</div>
+                        <div class="user-role">{{ current_user.role|capitalize }}</div>
+                    </div>
+                </div>
+                <a class="sidebar-link sidebar-logout" href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+
+        <!-- Main Area -->
+        <div class="main-area">
+            <header class="topbar">
+                <button class="topbar-toggle" type="button" onclick="toggleSidebar(true)">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h4 class="topbar-title">{% block pagetitle %}Terratraq{% endblock %}</h4>
+            </header>
+
+            <main class="main-content">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'info' if category == 'message' else category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- ============ AUTH LAYOUT (not logged in) ============ -->
+    <div class="auth-shell">
+        <div class="auth-shell-brand">
+            <a href="{{ url_for('index') }}">
+                <img class="brand-logo" src="{{ url_for('static', filename='images/logo.png') }}" alt="Terratraq logo">
+                <span>Terratraq</span>
+            </a>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container" style="max-width: 480px;">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'info' if category == 'message' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {{ self.content() }}
+    </div>
+    {% endif %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

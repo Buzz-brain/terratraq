@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terratraq - AI Road Condition Prediction</title>
+    <meta name="description" content="Terratraq uses a CNN to automatically classify road images into five conditions: good, rough, flooded, crack, and pothole.">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="landing">
+        <!-- Nav -->
+        <nav class="landing-nav">
+            <a class="landing-brand" href="{{ url_for('index') }}">
+                <img class="brand-logo" src="{{ url_for('static', filename='images/logo.png') }}" alt="Terratraq logo">
+                <span>Terratraq</span>
+            </a>
+            <div class="landing-nav-links">
+                <a href="{{ url_for('login') }}" class="btn btn-outline-light">
+                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                </a>
+                <a href="{{ url_for('register') }}" class="btn btn-primary">
+                    Get Started
+                </a>
+            </div>
+        </nav>
+
+        <!-- Hero -->
+        <section class="landing-hero">
+            <div>
+                <h1>Know your roads<br>before you <span class="accent">drive</span>.</h1>
+                <p class="lead">
+                    Terratraq analyzes road photos with a deep learning CNN and tells you
+                    whether the surface is good, rough, flooded, cracked, or damaged by
+                    potholes — in seconds.
+                </p>
+                <div class="landing-hero-cta">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-rocket me-2"></i>Get Started Free
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">
+                        I have an account
+                    </a>
+                </div>
+                <div class="landing-hero-trust">
+                    <span class="badge"><i class="fas fa-bolt me-1"></i>Instant results</span>
+                    <span class="badge"><i class="fas fa-mobile-alt me-1"></i>Any device</span>
+                    <span class="badge"><i class="fas fa-shield-alt me-1"></i>Secure login</span>
+                </div>
+            </div>
+
+            <div class="landing-hero-visual">
+                <div class="landing-mock-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="mock-label">Predicted Condition</div>
+                        <div class="mock-badges">
+                            <span class="badge bg-secondary-subtle text-secondary">#1824</span>
+                            <span class="badge bg-primary-subtle text-primary">Terratraq AI</span>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold prob-text-pothole mb-3">Pothole</h3>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="text-muted mb-0 fw-semibold">Confidence Score</h6>
+                        <h6 class="fw-bold mb-0">87.3%</h6>
+                    </div>
+                    <div class="progress mb-3" style="height: 18px;">
+                        <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated"
+                             role="progressbar" style="width: 87.3%;">87.3%</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold">Pothole</span><span class="fw-semibold">87.3%</span>
+                        </div>
+                        <div class="progress" style="height: 12px;">
+                            <div class="progress-bar prob-pothole" style="width: 87.3%;"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold">Rough</span><span class="fw-semibold">5.2%</span>
+                        </div>
+                        <div class="progress" style="height: 12px;">
+                            <div class="progress-bar prob-rough" style="width: 5.2%;"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold">Crack</span><span class="fw-semibold">4.6%</span>
+                        </div>
+                        <div class="progress" style="height: 12px;">
+                            <div class="progress-bar prob-crack" style="width: 4.6%;"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold">Good</span><span class="fw-semibold">2.1%</span>
+                        </div>
+                        <div class="progress" style="height: 12px;">
+                            <div class="progress-bar prob-good" style="width: 2.1%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold">Flooded</span><span class="fw-semibold">0.8%</span>
+                        </div>
+                        <div class="progress" style="height: 12px;">
+                            <div class="progress-bar prob-flooded" style="width: 0.8%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats -->
+        <section class="landing-section">
+            <div class="landing-stats">
+                <div class="landing-stat">
+                    <div class="landing-stat-value">41,137</div>
+                    <div class="landing-stat-caption">Dataset Images</div>
+                </div>
+                <div class="landing-stat">
+                    <div class="landing-stat-value">89.36%</div>
+                    <div class="landing-stat-caption">Test Accuracy</div>
+                </div>
+                <div class="landing-stat">
+                    <div class="landing-stat-value">5</div>
+                    <div class="landing-stat-caption">Road Conditions</div>
+                </div>
+                <div class="landing-stat">
+                    <div class="landing-stat-value">2.3M</div>
+                    <div class="landing-stat-caption">Model Parameters</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How it works -->
+        <section class="landing-section">
+            <div class="landing-heading">
+                <h2>How it works</h2>
+                <p>Three simple steps from photo to road condition report.</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="landing-step">
+                        <div class="landing-step-num">1</div>
+                        <h6>Upload a photo</h6>
+                        <p>Choose any road image in JPG, PNG or GIF format.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="landing-step">
+                        <div class="landing-step-num">2</div>
+                        <h6>CNN analyzes it</h6>
+                        <p>A MobileNetV2 model scores every condition and returns the best match.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="landing-step">
+                        <div class="landing-step-num">3</div>
+                        <h6>Review your report</h6>
+                        <p>See confidence scores, a full breakdown, and revisit past predictions anytime.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Conditions -->
+        <section class="landing-section">
+            <div class="landing-heading">
+                <h2>What the model detects</h2>
+                <p>Five road surface conditions covered by the Terratraq CNN.</p>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="landing-condition">
+                        <img src="{{ url_for('static', filename='images/conditions/good-road.jpg') }}" alt="Good road surface">
+                        <div class="landing-condition-body">
+                            <div class="landing-condition-name">Good</div>
+                            <div class="landing-condition-desc">Smooth, well-maintained roads</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="landing-condition">
+                        <img src="{{ url_for('static', filename='images/conditions/rough-road.jpg') }}" alt="Rough road surface">
+                        <div class="landing-condition-body">
+                            <div class="landing-condition-name">Rough</div>
+                            <div class="landing-condition-desc">Uneven, damaged surfaces</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="landing-condition">
+                        <img src="{{ url_for('static', filename='images/conditions/flooded-road.jpg') }}" alt="Flooded road surface">
+                        <div class="landing-condition-body">
+                            <div class="landing-condition-name">Flooded</div>
+                            <div class="landing-condition-desc">Roads covered with water</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="landing-condition">
+                        <img src="{{ url_for('static', filename='images/conditions/crack-road.jpg') }}" alt="Cracked road surface">
+                        <div class="landing-condition-body">
+                            <div class="landing-condition-name">Crack</div>
+                            <div class="landing-condition-desc">Roads with surface cracks</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="landing-condition">
+                        <img src="{{ url_for('static', filename='images/conditions/pothole-road.jpg') }}" alt="Pothole in road surface">
+                        <div class="landing-condition-body">
+                            <div class="landing-condition-name">Pothole</div>
+                            <div class="landing-condition-desc">Roads with visible potholes</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="landing-condition landing-condition-plain">
+                        <div class="landing-condition-plain-icon"><i class="fas fa-question"></i></div>
+                        <div class="landing-condition-body">
+                            <div class="landing-condition-name">Not sure?</div>
+                            <div class="landing-condition-desc">Upload any road photo — we'll classify it</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="landing-section">
+            <div class="landing-cta">
+                <h3>Ready to check your roads?</h3>
+                <p>Create a free account and get your first road condition report in seconds.</p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ url_for('register') }}" class="btn btn-light btn-lg fw-semibold">
+                        <i class="fas fa-rocket me-2"></i>Get Started
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">
+                        Login
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="landing-footer">
+            Terratraq &copy; 2026 &middot; Road Condition Prediction System
+        </footer>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

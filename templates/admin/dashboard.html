@@ -1,0 +1,125 @@
+{% extends "admin/base.html" %}
+
+{% block admin_title %}Dashboard{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold"><i class="fas fa-tachometer-alt me-2 text-primary"></i>System Dashboard</h3>
+    <span class="text-muted small"><i class="fas fa-clock me-1"></i>{{ s.now }}</span>
+</div>
+
+<!-- Model status banner -->
+<div class="alert {{ 'alert-success' if s.model_loaded else 'alert-danger' }} d-flex justify-content-between align-items-center">
+    <div>
+        <strong><i class="fas fa-microchip me-2"></i>CNN Model:</strong>
+        {{ 'Loaded' if s.model_loaded else 'NOT LOADED' }} |
+        Classes: {{ s.classes if s.classes else 'N/A' }}
+    </div>
+    <a href="{{ url_for('admin_retrain') }}" class="btn btn-sm btn-outline-dark">
+        <i class="fas fa-edit me-1"></i>Update
+    </a>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-images fa-2x text-primary mb-2"></i>
+                <h2 class="fw-bold mb-0">{{ s.total_predictions }}</h2>
+                <div class="text-muted">Predictions</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x text-success mb-2"></i>
+                <h2 class="fw-bold mb-0">{{ s.total_users }}</h2>
+                <div class="text-muted">Users ({{ s.admin_count }} admin)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-hdd fa-2x text-warning mb-2"></i>
+                <h2 class="fw-bold mb-0">{{ s.db_size|filesizeformat }}</h2>
+                <div class="text-muted">Database Size</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-cloud-upload-alt fa-2x text-info mb-2"></i>
+                <h2 class="fw-bold mb-0">{{ s.uploads_size|filesizeformat }}</h2>
+                <div class="text-muted">Uploaded Images</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Class distribution -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3"><i class="fas fa-chart-pie me-2 text-primary"></i>Prediction Distribution</h5>
+                {% if s.class_counts %}
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr><th>Class</th><th>Count</th><th class="w-50">Share</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for cls, count in s.class_counts.items() %}
+                        <tr>
+                            <td>{{ cls|title }}</td>
+                            <td>{{ count }}</td>
+                            <td>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar prob-{{ cls }}"
+                                         style="width: {{ (count / s.total_predictions * 100)|round(1) if s.total_predictions else 0 }}%;"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted">No predictions yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- System info -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3"><i class="fas fa-server me-2 text-primary"></i>System Information</h5>
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">Model file size</td>
+                            <td class="fw-semibold text-end">{{ s.model_size|filesizeformat }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Training dataset</td>
+                            <td class="fw-semibold text-end">{{ s.datasets_size }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Python version</td>
+                            <td class="fw-semibold text-end">{{ s.python_version }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">TensorFlow version</td>
+                            <td class="fw-semibold text-end">{{ s.tensorflow_version }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

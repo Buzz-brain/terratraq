@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+
+{% block title %}{% block admin_title %}{% endblock %} - Admin - Terratraq{% endblock %}
+{% block pagetitle %}{{ self.admin_title() }}{% endblock %}
+
+{% block content %}{% block admin_content %}{% endblock %}{% endblock %}

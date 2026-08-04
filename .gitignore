@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.log
+instance/
+static/uploads/
+uploads/
+datasets/
+model/backups/
+static/images/original/
+.env
+.venv/
+venv/

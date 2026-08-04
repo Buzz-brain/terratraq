@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Road Image - Terratraq{% endblock %}
+{% block pagetitle %}Upload Road Image{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <h2>Analyze a Road Image</h2>
+    <p>Upload a road photo and our CNN model will classify its condition instantly.</p>
+</div>
+
+<div class="row g-4">
+    <!-- Upload Hero -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+                <form id="uploadForm" method="POST" action="{{ url_for('predict') }}" enctype="multipart/form-data">
+                    <div class="upload-area" id="dropZone">
+                        <div class="text-center py-4">
+                            <i class="fas fa-cloud-upload-alt text-primary mb-3"></i>
+                            <h4 class="fw-bold">Drag & Drop your image here</h4>
+                            <p class="text-muted mb-4">or click to browse from your device</p>
+                            <input type="file" name="image" id="imageInput" class="d-none" accept="image/*">
+                            <button type="button" class="btn btn-primary btn-lg" onclick="document.getElementById('imageInput').click()">
+                                <i class="fas fa-folder-open me-2"></i>Choose Image
+                            </button>
+                            <p class="text-muted mt-4 mb-0 small">Supports: JPG, PNG, GIF</p>
+                        </div>
+                    </div>
+
+                    <!-- Image Preview -->
+                    <div id="imagePreviewContainer" class="mt-4 d-none">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <img id="imagePreview" src="#" alt="Preview" class="img-fluid rounded" style="max-height: 320px;">
+                                <p id="fileNameDisplay" class="mt-2 text-muted small"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="text-center mt-4">
+                        <button type="submit" id="predictBtn" class="btn btn-success btn-lg px-5" disabled>
+                            <i class="fas fa-microchip me-2"></i>Predict
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Panel -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0"><i class="fas fa-tags me-2 text-primary"></i>What We Detect</h6>
+            </div>
+            <div class="card-body">
+                <div class="detect-list">
+                    <div class="detect-item">
+                        <span class="detect-dot prob-good"></span>
+                        <div>
+                            <div class="detect-name">Good</div>
+                            <div class="detect-desc">Smooth, well-maintained roads</div>
+                        </div>
+                    </div>
+                    <div class="detect-item">
+                        <span class="detect-dot prob-rough"></span>
+                        <div>
+                            <div class="detect-name">Rough</div>
+                            <div class="detect-desc">Uneven, damaged surfaces</div>
+                        </div>
+                    </div>
+                    <div class="detect-item">
+                        <span class="detect-dot prob-flooded"></span>
+                        <div>
+                            <div class="detect-name">Flooded</div>
+                            <div class="detect-desc">Roads covered with water</div>
+                        </div>
+                    </div>
+                    <div class="detect-item">
+                        <span class="detect-dot prob-crack"></span>
+                        <div>
+                            <div class="detect-name">Crack</div>
+                            <div class="detect-desc">Roads with surface cracks</div>
+                        </div>
+                    </div>
+                    <div class="detect-item">
+                        <span class="detect-dot prob-pothole"></span>
+                        <div>
+                            <div class="detect-name">Pothole</div>
+                            <div class="detect-desc">Roads with visible potholes</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0"><i class="fas fa-bolt me-2 text-primary"></i>How It Works</h6>
+            </div>
+            <div class="card-body">
+                <div class="step-list">
+                    <div class="step-item">
+                        <div class="step-num">1</div>
+                        <div>
+                            <div class="step-title">Upload an image</div>
+                            <div class="step-desc">Drag & drop a road photo or browse your device.</div>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">2</div>
+                        <div>
+                            <div class="step-title">AI analyzes it</div>
+                            <div class="step-desc">A MobileNetV2 CNN scores all five conditions.</div>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">3</div>
+                        <div>
+                            <div class="step-title">View your report</div>
+                            <div class="step-desc">Get the result, confidence and full breakdown.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Image preview functionality
+    document.getElementById('imageInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('imagePreview').src = event.target.result;
+                document.getElementById('imagePreviewContainer').classList.remove('d-none');
+                document.getElementById('fileNameDisplay').textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+                document.getElementById('predictBtn').disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Drag and drop functionality
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('border-primary', 'bg-light');
+    });
+    dropZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('border-primary', 'bg-light');
+    });
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('border-primary', 'bg-light');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            document.getElementById('imageInput').files = files;
+            document.getElementById('imageInput').dispatchEvent(new Event('change'));
+        }
+    });
+
+    // Auto-submit with loading state
+    document.getElementById('uploadForm').addEventListener('submit', function() {
+        const btn = document.getElementById('predictBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analyzing...';
+    });
+});
+</script>
+{% endblock %}

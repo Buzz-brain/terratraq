@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Terratraq{% endblock %}
+{% block pagetitle %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1">
+            Welcome back, <span class="text-primary">{{ current_user.username }}</span>
+        </h2>
+        <p class="text-muted mb-0">
+            {% if is_admin %}
+            <span class="badge bg-primary-subtle text-primary">Administrator</span>
+            {% else %}
+            <span class="badge bg-secondary-subtle text-secondary">Member</span>
+            {% endif %}
+            &nbsp;Here's what's happening with your road analysis.
+        </p>
+    </div>
+    <a href="{{ url_for('upload') }}" class="btn btn-primary btn-lg">
+        <i class="fas fa-cloud-upload-alt me-2"></i>Upload Road Image
+    </a>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="stat-icon bg-primary-subtle text-primary"><i class="fas fa-image"></i></div>
+                <div class="stat-number">{{ s.total }}</div>
+                <div class="stat-label">Predictions</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="stat-icon bg-success-subtle text-success"><i class="fas fa-tachometer-alt"></i></div>
+                <div class="stat-number">{{ s.most_common|title if s.most_common else '—' }}</div>
+                <div class="stat-label">Most Common Condition</div>
+            </div>
+        </div>
+    </div>
+    {% if is_admin %}
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="stat-icon bg-warning-subtle text-warning"><i class="fas fa-users"></i></div>
+                <div class="stat-number">{{ s.total_users }}</div>
+                <div class="stat-label">Registered Users</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="stat-icon {{ 'bg-success-subtle text-success' if s.model_loaded else 'bg-danger-subtle text-danger' }}">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="stat-number">{{ 'Active' if s.model_loaded else 'Missing' }}</div>
+                <div class="stat-label">CNN Model</div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="stat-icon bg-info-subtle text-info"><i class="fas fa-history"></i></div>
+                <div class="stat-number">{{ s.most_common_count }}</div>
+                <div class="stat-label">Most Common Count</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="stat-icon bg-danger-subtle text-danger"><i class="fas fa-road"></i></div>
+                <div class="stat-number">{{ s.class_distribution|length }}</div>
+                <div class="stat-label">Detected Conditions</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-4">
+    <!-- Recent Predictions -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="fw-bold mb-0"><i class="fas fa-clock me-2 text-primary"></i>Recent Predictions</h5>
+                <a href="{{ url_for('history') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Image</th>
+                                <th>Condition</th>
+                                <th>Confidence</th>
+                                {% if is_admin %}<th>User</th>{% endif %}
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in recent %}
+                            <tr>
+                                <td>
+                                    <img src="{{ url_for('static', filename='uploads/' + p.filename) }}"
+                                         alt="thumb" class="thumb-img">
+                                </td>
+                                <td><span class="badge bg-primary-subtle text-primary">{{ p.predicted_class|title }}</span></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress flex-grow-1" style="height: 8px; width: 80px;">
+                                            <div class="progress-bar" style="width: {{ p.confidence }}%;"></div>
+                                        </div>
+                                        <span class="small fw-semibold">{{ '%.2f' % p.confidence }}%</span>
+                                    </div>
+                                </td>
+                                {% if is_admin %}<td class="small">{{ p.user.username if p.user else '—' }}</td>{% endif %}
+                                <td class="small text-muted">{{ p.timestamp.strftime('%b %d, %Y %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p class="text-muted mb-1">No predictions yet.</p>
+                    <a href="{{ url_for('upload') }}" class="btn btn-primary mt-2">Upload Your First Image</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Distribution -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0"><i class="fas fa-chart-pie me-2 text-primary"></i>Condition Breakdown</h5>
+            </div>
+            <div class="card-body">
+                {% if s.class_distribution %}
+                    {% set total = s.class_distribution.values()|sum %}
+                    {% for cls in ['good', 'rough', 'flooded', 'crack', 'pothole'] %}
+                        {% if cls in s.class_distribution %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="fw-semibold">{{ cls|title }}</span>
+                                <span class="text-muted">{{ s.class_distribution[cls] }} ({{ '%.0f' % (s.class_distribution[cls] / total * 100) }}%)</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar prob-{{ cls }}" style="width: {{ '%.0f' % (s.class_distribution[cls] / total * 100) }}%;"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                    <p class="text-muted small mb-0 mt-3">Distribution across all {{ s.total }} prediction(s).</p>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-pie fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No data available yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

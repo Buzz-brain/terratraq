@@ -1,0 +1,213 @@
+{% extends "admin/base.html" %}
+
+{% block admin_title %}System Settings{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold"><i class="fas fa-cogs me-2 text-primary"></i>System Settings</h3>
+</div>
+
+<div class="row g-4">
+    <!-- Left column -->
+    <div class="col-lg-7">
+
+        <!-- Model Information -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h5 class="fw-bold mb-0"><i class="fas fa-brain me-2 text-primary"></i>Model Information</h5>
+                <span class="badge {{ 'bg-success' if info.model_loaded else 'bg-danger' }}">
+                    {{ 'Model Loaded' if info.model_loaded else 'NOT LOADED' }}
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <h6 class="fw-bold mb-3"><i class="fas fa-file-code me-2 text-muted"></i>Model Files</h6>
+                <div class="mb-3">
+                    <div class="small text-muted">Trained model</div>
+                    <div class="fw-semibold">{{ info.model_file }} <span class="text-muted small">({{ info.model_size|filesizeformat }})</span></div>
+                </div>
+                <div class="mb-3">
+                    <div class="small text-muted">Class names</div>
+                    <div class="fw-semibold">{{ info.classes_file }}</div>
+                </div>
+                <div class="mb-3">
+                    <div class="small text-muted">Classes</div>
+                    <div class="fw-semibold">{{ info.model_classes if info.model_classes else 'N/A' }}</div>
+                </div>
+                <div class="d-grid gap-2 mb-4">
+                    <a href="{{ url_for('admin_model_download', kind='model') }}" class="btn btn-primary">
+                        <i class="fas fa-download me-2"></i>Download {{ info.model_file }}
+                    </a>
+                    <a href="{{ url_for('admin_model_download', kind='classes') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-download me-2"></i>Download {{ info.classes_file }}
+                    </a>
+                </div>
+                <p class="text-muted small mb-0">
+                    These are the exact files the application runs on. Re-upload them anytime via
+                    <a href="{{ url_for('admin_retrain') }}">Update CNN Model</a>.
+                </p>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0"><i class="fas fa-server me-2 text-primary"></i>System Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">Application</td>
+                            <td class="fw-semibold text-end">Terratraq</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Admin account</td>
+                            <td class="fw-semibold text-end">{{ info.admin_username }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">CNN model</td>
+                            <td class="fw-semibold text-end">
+                                <span class="badge {{ 'bg-success' if info.model_loaded else 'bg-danger' }}">
+                                    {{ 'Loaded' if info.model_loaded else 'NOT LOADED' }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Model classes</td>
+                            <td class="fw-semibold text-end">{{ info.model_classes if info.model_classes else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Model file size</td>
+                            <td class="fw-semibold text-end">{{ info.model_size|filesizeformat }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Uploaded images</td>
+                            <td class="fw-semibold text-end">{{ info.uploads_size|filesizeformat }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Training dataset</td>
+                            <td class="fw-semibold text-end">{{ info.datasets_size }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Python version</td>
+                            <td class="fw-semibold text-end">{{ info.python_version }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">TensorFlow version</td>
+                            <td class="fw-semibold text-end">{{ info.tensorflow_version }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="col-lg-5">
+
+        <!-- Confusion Matrix -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0"><i class="fas fa-th me-2 text-primary"></i>Confusion Matrix</h5>
+            </div>
+            <div class="card-body">
+                {% if info.has_confusion %}
+                <a href="{{ url_for('admin_model_confusion') }}" target="_blank" title="Open full size">
+                    <img src="{{ url_for('admin_model_confusion') }}" alt="Confusion matrix"
+                         class="img-fluid rounded border w-100">
+                </a>
+                <a href="{{ url_for('admin_model_download', kind='confusion') }}" class="btn btn-sm btn-outline-primary mt-2 w-100">
+                    <i class="fas fa-download me-1"></i>Download confusion_matrix.png
+                </a>
+                {% else %}
+                <div class="text-center text-muted border rounded py-5">
+                    <i class="fas fa-chart-simple fa-2x mb-2"></i>
+                    <p class="mb-1">Confusion matrix not available yet.</p>
+                    <p class="small mb-0">Export it from Colab and save as<br><code>model/confusion_matrix.png</code></p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Training History -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0"><i class="fas fa-chart-line me-2 text-primary"></i>Training History</h5>
+            </div>
+            <div class="card-body">
+                {% if info.has_history_img %}
+                <a href="{{ url_for('admin_model_training_history_img') }}" target="_blank" title="Open full size">
+                    <img src="{{ url_for('admin_model_training_history_img') }}" alt="Training history"
+                         class="img-fluid rounded border w-100">
+                </a>
+                <a href="{{ url_for('admin_model_download', kind='history') }}" class="btn btn-sm btn-outline-primary mt-2 w-100">
+                    <i class="fas fa-download me-1"></i>Download training_history.png
+                </a>
+                {% elif info.has_history and history %}
+                <div class="chart-wrapper mb-3" style="height: 150px;">
+                    <canvas id="accChart"></canvas>
+                </div>
+                <div class="chart-wrapper" style="height: 150px;">
+                    <canvas id="lossChart"></canvas>
+                </div>
+                {% else %}
+                <div class="text-center text-muted border rounded py-5">
+                    <i class="fas fa-chart-line fa-2x mb-2"></i>
+                    <p class="mb-1">Training history not available yet.</p>
+                    <p class="small mb-0">Save <code>training_history.png</code> into<br><code>model/</code> to display it here.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if info.has_history and history %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const history = {{ history|tojson }};
+    if (!history || !Array.isArray(history.accuracy)) return;
+    const epochs = history.accuracy.map((_, i) => 'Epoch ' + (i + 1));
+    const accent = '#2563EB';
+    const secondary = '#F59E0B';
+
+    new Chart(document.getElementById('accChart'), {
+        type: 'line',
+        data: {
+            labels: epochs,
+            datasets: [
+                { label: 'Training Accuracy', data: history.accuracy, borderColor: accent, backgroundColor: accent, tension: 0.3, fill: false },
+                { label: 'Validation Accuracy', data: history.val_accuracy || [], borderColor: secondary, backgroundColor: secondary, tension: 0.3, fill: false }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, title: { display: true, text: 'Accuracy', font: { size: 13 } } },
+            scales: { y: { beginAtZero: true, max: 1, ticks: { callback: v => (v * 100).toFixed(0) + '%' } } }
+        }
+    });
+
+    new Chart(document.getElementById('lossChart'), {
+        type: 'line',
+        data: {
+            labels: epochs,
+            datasets: [
+                { label: 'Training Loss', data: history.loss, borderColor: '#EF4444', backgroundColor: '#EF4444', tension: 0.3, fill: false },
+                { label: 'Validation Loss', data: history.val_loss || [], borderColor: '#7C3AED', backgroundColor: '#7C3AED', tension: 0.3, fill: false }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, title: { display: true, text: 'Loss', font: { size: 13 } } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

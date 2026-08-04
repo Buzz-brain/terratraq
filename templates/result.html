@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Result - Terratraq{% endblock %}
+{% block pagetitle %}Prediction Result{% endblock %}
+
+{% block content %}
+<div class="page-heading d-flex flex-wrap justify-content-between align-items-end gap-2">
+    <div>
+        <h2>Prediction Report</h2>
+        <p>Detailed breakdown for the analyzed road image.</p>
+    </div>
+    <a href="{{ url_for('history') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to History
+    </a>
+</div>
+
+<!-- Result Card -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4 p-lg-5">
+        <div class="row g-4 g-lg-5 align-items-center">
+            <!-- Image -->
+            <div class="col-md-5">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <img src="{{ url_for('static', filename='uploads/' + filename) }}"
+                             alt="Uploaded road image"
+                             class="img-fluid rounded"
+                             style="max-height: 340px; width: 100%; object-fit: cover;">
+                        <p class="text-muted small mt-2 mb-0"><i class="fas fa-file-image me-1"></i>{{ filename }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="col-md-7">
+                <div class="text-center text-md-start mb-4">
+                    <h5 class="text-muted text-uppercase small fw-bold mb-2">Predicted Condition</h5>
+                    <h1 class="display-3 fw-bold prob-text-{{ prediction.predicted_class }} mb-3">
+                        {{ prediction.predicted_class|title }}
+                    </h1>
+                    <div class="d-flex flex-wrap justify-content-center justify-content-md-start gap-2">
+                        <span class="badge bg-primary-subtle text-primary fs-6">#{{ prediction.id }}</span>
+                        <span class="badge bg-secondary-subtle text-secondary fs-6">
+                            <i class="fas fa-user me-1"></i>{{ prediction.user.username if prediction.user else current_user.username }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="confidence-meter">
+                    <div class="d-flex justify-content-between mb-1">
+                        <h6 class="text-muted mb-0 fw-semibold">Confidence Score</h6>
+                        <h6 class="fw-bold mb-0">{{ confidence }}</h6>
+                    </div>
+                    <div class="progress" style="height: 22px;">
+                        <div class="progress-bar
+                            {% if confidence_value > 80 %}bg-success
+                            {% elif confidence_value > 60 %}bg-warning
+                            {% else %}bg-danger{% endif %}
+                            progress-bar-striped progress-bar-animated"
+                            role="progressbar"
+                            style="width: {{ confidence_value }}%;"
+                            aria-valuenow="{{ confidence_value }}"
+                            aria-valuemin="0"
+                            aria-valuemax="100">
+                            {{ confidence }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-meta">
+                    <span><i class="fas fa-calendar-day"></i>{{ prediction.timestamp.strftime('%b %d, %Y') }}</span>
+                    <span><i class="fas fa-clock"></i>{{ prediction.timestamp.strftime('%H:%M:%S') }}</span>
+                    <span><i class="fas fa-layer-group"></i>{{ class_names|length }} classes</span>
+                </div>
+
+                <div class="action-buttons mt-4 d-grid d-sm-flex gap-2">
+                    <a href="{{ url_for('upload') }}" class="btn btn-primary btn-lg flex-fill">
+                        <i class="fas fa-upload me-2"></i>Analyze Another Image
+                    </a>
+                    <a href="{{ url_for('history') }}" class="btn btn-outline-secondary btn-lg flex-fill">
+                        <i class="fas fa-history me-2"></i>View History
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0"><i class="fas fa-list-ol me-2 text-primary"></i>All Predictions</h6>
+            </div>
+            <div class="card-body p-4">
+                {% for cls, prob in class_probabilities %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="fw-semibold prediction-label">{{ cls|title }}</span>
+                        <span class="fw-semibold">{{ '%.1f' % prob }}%</span>
+                    </div>
+                    <div class="progress" style="height: 14px;">
+                        <div class="progress-bar prob-{{ cls }}"
+                             role="progressbar"
+                             style="width: {{ '%.1f' % prob }}%;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>Confidence Chart</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="chart-wrapper">
+                    <canvas id="confidenceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const classNames = {{ class_names|tojson }};
+    const probabilities = {{ probabilities|tojson }};
+    const colors = {
+        'good': '#22C55E',
+        'rough': '#F59E0B',
+        'flooded': '#38BDF8',
+        'crack': '#EF4444',
+        'pothole': '#7C3AED'
+    };
+
+    new Chart(document.getElementById('confidenceChart'), {
+        type: 'bar',
+        data: {
+            labels: classNames.map(c => c.charAt(0).toUpperCase() + c.slice(1)),
+            datasets: [{
+                label: 'Confidence (%)',
+                data: probabilities,
+                backgroundColor: classNames.map(c => colors[c] || '#0d6efd'),
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ctx.parsed.y.toFixed(1) + '%'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: { display: true, text: 'Confidence (%)' }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

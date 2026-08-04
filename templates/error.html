@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Error - Terratraq{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <i class="fas fa-exclamation-triangle fa-4x text-danger"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">Oops! Something Went Wrong</h3>
+                    <p class="text-muted mb-4">{{ error }}</p>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('dashboard' if current_user else 'login') }}" class="btn btn-primary">
+                            <i class="fas fa-home me-2"></i>Go Home
+                        </a>
+                        <button onclick="history.back()" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Go Back
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

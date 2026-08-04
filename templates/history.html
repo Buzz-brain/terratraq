@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction History - Terratraq{% endblock %}
+{% block pagetitle %}Prediction History{% endblock %}
+
+{% block content %}
+<div class="page-heading d-flex flex-wrap justify-content-between align-items-end gap-2">
+    <div>
+        <h2>{{ 'Prediction Reports' if is_admin else 'My Prediction History' }}</h2>
+        <p>
+            {% if is_admin %}
+            Viewing prediction reports for all users.
+            {% else %}
+            Your recent road condition predictions.
+            {% endif %}
+        </p>
+    </div>
+    {% if predictions %}
+    <form method="POST" action="{{ url_for('clear_history') }}"
+          onsubmit="return confirm('Are you sure you want to clear all visible history?')">
+        <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash me-2"></i>Clear All
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+{% if predictions %}
+<!-- Summary Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="stat-icon bg-primary-subtle text-primary mb-0"><i class="fas fa-images"></i></div>
+                <div>
+                    <div class="stat-number">{{ predictions|length }}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="stat-icon bg-info-subtle text-info mb-0"><i class="fas fa-layer-group"></i></div>
+                <div>
+                    <div class="stat-number">{{ stats.classes }}</div>
+                    <div class="stat-label">Conditions Detected</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="stat-icon bg-warning-subtle text-warning mb-0"><i class="fas fa-tachometer-alt"></i></div>
+                <div>
+                    <div class="stat-number">{{ '%.1f' % stats.avg_conf }}%</div>
+                    <div class="stat-label">Avg Confidence</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="stat-icon bg-success-subtle text-success mb-0"><i class="fas fa-chart-pie"></i></div>
+                <div>
+                    <div class="stat-number">{{ stats.most_common|title if stats.most_common else '—' }}</div>
+                    <div class="stat-label">Most Common</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h6 class="fw-bold mb-0"><i class="fas fa-table me-2 text-primary"></i>All Predictions</h6>
+        <div class="filter-chips" id="filterChips">
+            <button type="button" class="filter-chip active" data-filter="all">All</button>
+            {% for cls in predictions|map(attribute='predicted_class')|unique|list %}
+            <button type="button" class="filter-chip" data-filter="{{ cls }}">{{ cls|title }}</button>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="historyTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Image</th>
+                        <th>Prediction</th>
+                        <th>Confidence</th>
+                        {% if is_admin %}<th>User</th>{% endif %}
+                        <th>Time</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in predictions %}
+                    <tr data-class="{{ p.predicted_class }}">
+                        <td>
+                            <img src="{{ url_for('static', filename='uploads/' + p.filename) }}"
+                                 alt="Road image"
+                                 class="rounded thumb-img">
+                        </td>
+                        <td>
+                            <span class="badge bg-primary-subtle text-primary fs-6">{{ p.predicted_class|title }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 8px; min-width: 70px; max-width: 120px;">
+                                    <div class="progress-bar
+                                        {% if p.confidence > 80 %}bg-success
+                                        {% elif p.confidence > 60 %}bg-warning
+                                        {% else %}bg-danger{% endif %}"
+                                        role="progressbar"
+                                        style="width: {{ '%.2f' % p.confidence }}%;">
+                                    </div>
+                                </div>
+                                <span class="small fw-semibold">{{ '%.2f' % p.confidence }}%</span>
+                            </div>
+                        </td>
+                        {% if is_admin %}<td class="small">{{ p.user.username if p.user else '—' }}</td>{% endif %}
+                        <td class="small text-muted">{{ p.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1">
+                                <a href="{{ url_for('result_view', prediction_id=p.id) }}"
+                                   class="btn btn-sm btn-outline-primary" title="View report">
+                                    <i class="fas fa-chart-bar"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('delete_prediction', prediction_id=p.id) }}"
+                                      onsubmit="return confirm('Delete this prediction?')" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white text-muted text-center small">
+        Total predictions: {{ predictions|length }}
+    </div>
+</div>
+{% else %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">No predictions yet</h4>
+        <p class="text-muted">Upload an image to get your first prediction</p>
+        <a href="{{ url_for('upload') }}" class="btn btn-primary">
+            <i class="fas fa-upload me-2"></i>Upload Image
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chips = document.querySelectorAll('#filterChips .filter-chip');
+    const rows = document.querySelectorAll('#historyTable tbody tr');
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', function() {
+            chips.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            const filter = this.dataset.filter;
+            rows.forEach(row => {
+                row.style.display = (filter === 'all' || row.dataset.class === filter) ? '' : 'none';
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
